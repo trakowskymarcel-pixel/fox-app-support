@@ -1,2 +1,4 @@
-# fox-app-support
-Fox iOS app Support and Privacy pages (App Store Connect URLs)
+# Fox App Support
+
+Support: https://trakowskymarcel-pixel.github.io/fox-app-support/
+Privacy: https://trakowskymarcel-pixel.github.io/fox-app-support/privacy.html
