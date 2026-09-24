@@ -15,30 +15,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      exists: ${{ steps.state.outputs.exists }}
+      build_type: ${{ steps.state.outputs.build_type }}
+    steps:
+      - name: Check Pages site
+        id: state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          gh api "repos/${{ github.repository }}/pages" > pages.json
+          code=$?
+          set -e
+          if [ "$code" -ne 0 ]; then
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "build_type=none" >> "$GITHUB_OUTPUT"
+            echo "::error title=Enable GitHub Pages::Pages is not turned on. Open https://github.com/${{ github.repository }}/settings/pages and choose either Deploy from a branch (main, folder /docs) or GitHub Actions. Then re-run this workflow."
+            exit 1
+          fi
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+          echo "build_type=$(jq -r '.build_type // "legacy"' pages.json)" >> "$GITHUB_OUTPUT"
+
   deploy:
+    needs: check
+    if: needs.check.outputs.build_type == 'workflow'
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
-        with:
-          # Creates the Pages site (GitHub Actions source) when it does not exist yet.
-          enablement: true
-
-      - name: Collect site files
-        run: |
-          mkdir -p _site
-          cp index.html privacy.html terms.html 404.html style.css favicon.svg .nojekyll _site/
 
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: docs
 
       - name: Deploy
         id: deployment
